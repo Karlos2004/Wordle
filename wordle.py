@@ -116,6 +116,11 @@ class WordleGame():
     
     Methods:
         initialize: game을 초기화하는 함수
+        set_answer_randomly: answer를 임의로 정하는 함수
+        set_answer_list: answer_word가 주어졌을 때, answer로 설정하는 함수
+        play_live_randomly: 임의의 정답에 대해서 실시간 플레이할 수 있는 함수
+        play_live_with_list: 단어 리스트 순서대로 입력할 때 플레이 결과를 보여주는 함수
+        getHistory
 
 
     """
@@ -129,11 +134,10 @@ class WordleGame():
     def set_answer_randomly(self):
         self.game.setAnswer(random.choice(wordSet))
     
-    def set_answer_list(self, answer_word_set):
-        for answers in answer_word_set:
-            self.ga
+    def set_answer_list(self, answer_word):
+        self.game.setAnswer(answer_word)
 
-    def play_live(self):
+    def play_live_randomly(self):
         self.initialize()
         self.set_answer_randomly()
         while not self.game.isEnd():
