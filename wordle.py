@@ -7,7 +7,7 @@ wordSet = set()
 class Wordle:
     global wordSet, __wordLength
     """
-    Wordle을 구현하였다.
+    Wordle의 기본적인 기능을 담은 클래스다.
 
     Attributes:
         answer: Wordle에서 사용될 정답 단어(string)
@@ -34,6 +34,17 @@ class Wordle:
         self.end = False
     
     def __str__(self):
+        """
+            Wordle의 플레이 내역을 문자열의 형태로 반환하는 함수다.
+            Wordle 공식 홈페이지를 참조하여 만들고자 한다.
+
+            Args:
+            Raises:
+                assertionError: 플레이가 종료된 후 불러올 수 있다.
+            
+            Returns:
+                summary: 플레이 내역을 담은 문자열(string)
+        """
         return None
     
     def verify(word):
@@ -120,9 +131,7 @@ class WordleGame():
         set_answer_list: answer_word가 주어졌을 때, answer로 설정하는 함수
         play_live_randomly: 임의의 정답에 대해서 실시간 플레이할 수 있는 함수
         play_live_with_list: 단어 리스트 순서대로 입력할 때 플레이 결과를 보여주는 함수
-        getHistory
-
-
+        getHistory: history를 반환하는 함수
     """
     def __init__(self):
         self.game = Wordle()
