@@ -1,8 +1,8 @@
 from collections import defaultdict
 import random
+from set_word_list import wordSet
 
 __wordLength = 5
-wordSet = set()
 
 class Wordle:
     global wordSet, __wordLength
@@ -10,8 +10,8 @@ class Wordle:
     Wordle의 기본적인 기능을 담은 클래스다.
 
     Attributes:
-        answer: Wordle에서 사용될 정답 단어(string)
-        userInput: Wordle에서 사용자가 입력한 단어(string)
+        _answer: Wordle에서 사용될 정답 단어(string)
+        _userInput: Wordle에서 사용자가 입력한 단어(string)
         query: 사용자가 정답을 찾을 때까지 입력한 횟수(integer)
         __wordLength: 정답 단어 및 입력 단어의 길이(integer)
         
@@ -27,9 +27,9 @@ class Wordle:
         getQuery: query를 반환
         convert_to_pattern: compare 함수에서 만든 문자열을 __str__에 저장할 패턴으로 변환하는 함수
     """
-    def __init__(self):
-        self.answer = ''
-        self.userInput = ''
+    def __init__(self, answer_word=''):
+        self.setAnswer(answer_word)
+        self._userInput = ''
         self.query = 0
         self.end = False
     
@@ -47,6 +47,7 @@ class Wordle:
         """
         return None
     
+    @staticmethod
     def verify(word):
         """
             단어가 조건을 만족하는지 테스트한다.
@@ -64,19 +65,21 @@ class Wordle:
                 verified: 검증 여부(boolean)
         """
         verified = True
+        if len(word) != __wordLength: verified = False
         if verified: self.query += 1
         return verified
     
-    def setAnswer(self, word):
-        if not verify(word):
+    @property
+    def answer(self):
+        return self._answer
+        
+    @answer.setter
+    def answer(self, answer_word):
+        if not verify(answer_word):
             return False
-        self.answer = word
+        self._answer = answer_word
         return True
-    
-    def getAnswer(self):
-        if self.answer: 
-            return self.answer
-        return None
+        
     
     def compare(self):
         """
@@ -101,19 +104,39 @@ class Wordle:
         return pattern
     
     def isEnd(self):
-        return (self.userInput == self.answer)
+        return (self._userInput == self._answer)
     
-    def setInput(self, input_word):
-        self.userInput = input_word
+    @property
+    def userInput(self):
+        return self._userInput
+    
+    @userInput.setter
+    def userInput(self, input_word):
+        self._userInput = input_word
 
-    def getInput(self):
-        return self.userInput
-    
     def getQuery(self):
         return self.query
     
-    def convert_to_pattern(self):
-        return ""
+    @staticmethod
+    def convert_to_pattern(int_pattern):
+        digit_dictionary = {"0":"G", "1":"Y", "2":"B"}
+        str_pattern = ""
+        for digit in int_pattern:
+            str_pattern += digit_dictionary[digit]
+        return str_pattern
+    
+    @staticmethod
+    def decimal_to_ternary(dec_num):
+        ter_num = ""
+        while dec_num > 0:
+            ter_num = str(dec_num % 3) + ter_num
+            dec_num //= 3
+        return ter_num.zfill(5)
+    
+    @staticmethod
+    def ternary_to_decimal(ter_num):
+        dec_num = int(ter_num, 3)
+        return dec_num
 
 class WordleGame():
     """
@@ -159,4 +182,3 @@ class WordleGame():
 
     def getHistory(self):
         return self.history
-    
