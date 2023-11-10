@@ -31,7 +31,6 @@ class Wordle:
         self.setAnswer(answer_word)
         self._userInput = ''
         self.query = 0
-        self.end = False
     
     def __str__(self):
         """
@@ -45,7 +44,8 @@ class Wordle:
             Returns:
                 summary: 플레이 내역을 담은 문자열(string)
         """
-        return None
+        summary = f"I guessed this {__wordLength}-letter word in {self.query} tries.\n\n"
+        return summary
     
     @staticmethod
     def verify(word):
@@ -53,7 +53,7 @@ class Wordle:
             단어가 조건을 만족하는지 테스트한다.
 
             1) 길이가 __wordLength와 같은가?
-            2) 알파벳으로만 구성되어 있는가?
+            2) 알파벳으로만 구성되어 있는가? (3번으로부터 확인 가능)
             3) 사전에 등재되어 있는가?(wordSet에 포함되는가?)
 
             Args:
@@ -66,9 +66,9 @@ class Wordle:
         """
         verified = True
         if len(word) != __wordLength: verified = False
-        if verified: self.query += 1
+        elif word.lower() not in wordSet: verified = False
         return verified
-    
+
     @property
     def answer(self):
         return self._answer
@@ -100,8 +100,21 @@ class Wordle:
     Returns:
         pattern: "2","1","0"으로 구성된 __wordLength 길이의 문자열
     """
-        pattern = ''
-        return pattern
+        assert len(self.userInput) == len(self.answer)
+        pattern = list('NNNNN'); copied_answer = list(self.answer)
+        #Find out Perfectly Matched character between two words
+        for i in range(__wordLength):
+            if self.userInput[i] == copied_answer[i]:
+                pattern[i] = 'B'
+                copied_answer[i] = ''
+            elif self.userInput[i] not in self.answer:
+                pattern[i] = 'G'
+        for i in range(__wordLength):
+            if pattern[i] == 'N' and self.userInput[i] in copied_answer:
+                pattern[i] = 'Y'
+            elif pattern[i] == 'N':
+                pattern[i] = 'G'
+        return "".join(pattern)
     
     def isEnd(self):
         return (self._userInput == self._answer)
@@ -117,26 +130,23 @@ class Wordle:
     def getQuery(self):
         return self.query
     
-    @staticmethod
-    def convert_to_pattern(int_pattern):
-        digit_dictionary = {"0":"G", "1":"Y", "2":"B"}
-        str_pattern = ""
-        for digit in int_pattern:
-            str_pattern += digit_dictionary[digit]
-        return str_pattern
+def convert_to_pattern(int_pattern):
+    digit_dictionary = {"0":"G", "1":"Y", "2":"B"}
+    str_pattern = ""
+    for digit in int_pattern:
+        str_pattern += digit_dictionary[digit]
+    return str_pattern
     
-    @staticmethod
-    def decimal_to_ternary(dec_num):
-        ter_num = ""
-        while dec_num > 0:
-            ter_num = str(dec_num % 3) + ter_num
-            dec_num //= 3
-        return ter_num.zfill(5)
-    
-    @staticmethod
-    def ternary_to_decimal(ter_num):
-        dec_num = int(ter_num, 3)
-        return dec_num
+def decimal_to_ternary(dec_num):
+    ter_num = ""
+    while dec_num > 0:
+        ter_num = str(dec_num % 3) + ter_num
+        dec_num //= 3
+    return ter_num.zfill(5)
+
+def ternary_to_decimal(ter_num):
+    dec_num = int(ter_num, 3)
+    return dec_num
 
 class WordleGame():
     """
