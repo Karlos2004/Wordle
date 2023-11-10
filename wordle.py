@@ -117,7 +117,7 @@ class Wordle:
         return "".join(pattern)
     
     def isEnd(self):
-        return (self._userInput == self._answer)
+        return (self.userInput == self.answer)
     
     @property
     def userInput(self):
@@ -172,14 +172,8 @@ class WordleGame():
     
     def initialize(self):
         self.game = Wordle()
-    
-    def set_answer_randomly(self):
-        self.game.setAnswer(random.choice(wordSet))
-    
-    def set_answer_list(self, answer_word):
-        self.game.setAnswer(answer_word)
 
-    def play_live_randomly(self):
+    def play_interactive(self):
         self.initialize()
         self.set_answer_randomly()
         while not self.game.isEnd():
@@ -189,6 +183,9 @@ class WordleGame():
             #compare those words
         #updates self.history
         return True
-
+    
+    def play(self):
+        return None
+    
     def getHistory(self):
         return self.history
