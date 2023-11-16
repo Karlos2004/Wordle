@@ -3,7 +3,7 @@ import random
 from set_word_list import wordSet
 import copy
 import statistics
-import cProfile
+import time
 
 _wordLength = 5
 
@@ -25,7 +25,7 @@ def verify(word):
     """
     verified = True
     if len(word) != _wordLength: verified = False
-    elif word.lower() not in wordSet: verified = False
+    elif word not in wordSet: verified = False
     return verified
 
 def compare(comp, crit):
@@ -33,10 +33,10 @@ def compare(comp, crit):
     입력 단어와 정답 단어를 비교하여 패턴을 출력한다.
 
     answer와 userInput에 대하여 알파벳을 차례대로 비교하여,
-    정확한 위치에 해당 문자가 있으면 "2",
-    위치는 잘못되었으나, 해당 문자가 포함되면 "1"
-    알파벳이 없다면 "0"으로 된 _wordLength 길이의 문자열을 반환한다.
-    단, 중복되는 문자들에 대해서는 앞에서부터 차례로 "1"을 부여하고,
+    정확한 위치에 해당 문자가 있으면 "B",
+    위치는 잘못되었으나, 해당 문자가 포함되면 "Y"
+    알파벳이 없다면 "G"으로 된 _wordLength 길이의 문자열을 반환한다.
+    단, 중복되는 문자들에 대해서는 앞에서부터 차례로 "Y"을 부여하고,
     정답에 포함된 문자의 개수를 초과해서 출력할 수 없다.
 
     Args:
@@ -45,34 +45,41 @@ def compare(comp, crit):
         assertionError: 두 문자열의 길이가 __wordLength가 아닌 경우
 
     Returns:
-        pattern: "2","1","0"으로 구성된 _wordLength 길이의 문자열
+        pattern: "B","Y","G"로 구성된 문자열
     """
-    pattern = list('44444')
+    pattern = list('NNNNN')
     crit_dic = defaultdict(int)
     for j in range(_wordLength):
         crit_dic[crit[j]] += 1
-    #Find out Perfectly Matched character between two words
     for i in range(_wordLength):
         if comp[i] == crit[i]:
-            pattern[i] = '2'
+            pattern[i] = 'B'
             crit_dic[crit[i]] -= 1
         elif comp[i] not in crit:
-            pattern[i] = '0'
+            pattern[i] = 'G'
     for i in range(_wordLength):
-        if pattern[i] == '4' and crit_dic[comp[i]]:
-            pattern[i] = '1'
+        if pattern[i] == 'N' and crit_dic[comp[i]] > 0:
+            pattern[i] = 'Y'
             crit_dic[comp[i]] -= 1
-        elif pattern[i] == '4':
-            pattern[i] = '0'
+        elif pattern[i] == 'N':
+            pattern[i] = 'G'
     return "".join(pattern)
 
-def convert_to_pattern(int_pattern):
+
+def convert_pattern(int_pattern):
     digit_dictionary = {"0":"G", "1":"Y", "2":"B"}
     str_pattern = ""
     for digit in int_pattern:
         str_pattern += digit_dictionary[digit]
     return str_pattern
-    
+
+def revert_pattern(str_pattern):
+    char_dictionary = {"G":"0", "Y":"1", "B":"2"}
+    int_pattern = ""
+    for char in str_pattern:
+        int_pattern += char_dictionary[char]
+    return ternary_to_decimal(int_pattern)
+
 def decimal_to_ternary(dec_num):
     ter_num = ""
     while dec_num > 0:
@@ -171,8 +178,8 @@ class WordleGame():
     def __init__(self):
         self.game = Wordle()
         self.possible_set = set()
-        self.history = defaultdict(set)
-    
+        self.history = defaultdict(list)
+        
     def initialize(self):
         self.game = Wordle()
         self.possible_set = copy.deepcopy(wordSet)
@@ -194,19 +201,30 @@ class WordleGame():
         self.game.answer = answer_word
         while not self.game.isEnd():
             guess = self.evaluate_mode(command)
+            self.history[answer_word].append(guess)
             if not verify(guess): return len(wordSet)
-            self.userInput = guess
+            self.game.userInput = guess
             guessed_result = compare(self.game.userInput, self.game.answer)
             self.converge_possible_set(guess, guessed_result)
         return self.game.getQuery()
     
-    def play_with_dictionary(self, command="partition_minMax"):
+    def play_with_dictionary(self, command="letter_frequency"):
         evaluation_index = [0,0] #(average, worst)
+        trial = 1
+        time_stamp = []; query_stamp = []
         for word in wordSet:
+            start_time = time.time()
             query = self.play_single_word(word, command)
+            end_time = time.time()
+            exec_time = end_time - start_time
             evaluation_index[0] += query
-            evaluation_index[1] = max(query, evaluation_index)
+            evaluation_index[1] = max(query, evaluation_index[1])
+            print(f"{trial}th execution succeed! // time: {round(exec_time, 3)}s // queries: {query} times")
+            time_stamp.append(exec_time); query_stamp.append(query)
+            trial += 1
         evaluation_index[0] /= len(wordSet)
+        print(f'average execution time: {round(sum(time_stamp) / len(time_stamp), 6)} s, worst execution time: {round(max(time_stamp), 6)} s')
+        print(f'average queries used: {round(sum(query_stamp) / len(query_stamp), 6)} times, worst queries used: {max(query_stamp)} times')
         return evaluation_index
     
     def play_K_repeated(self, K, command="partition_minMax"):
@@ -225,26 +243,28 @@ class WordleGame():
             return self._average()
         if command == "partition_variance":
             return self._variance()
+        if command == "letter_frequency":
+            return self._frequency()
         return None
     
     def _partition(self, comp_word):
         possibility = [0 for _ in range(243)] #(=3^5 for distinct pattern)
         for possible_word in self.possible_set:
-            int_pattern = ternary_to_decimal(compare(possible_word, comp_word)) #'compare' function required 
+            int_pattern = revert_pattern(compare(possible_word, comp_word)) 
             possibility[int_pattern] += 1
         return sorted(possibility)
 
     def _average(self):
         best_value = float('inf'); guess_word = ''
-        for comp_word in wordSet:
+        for comp_word in self.possible_set:
             possibility = self._partition(comp_word)
-            value = statistics.mean([x[i]*(i+1) for i in range(243)])
+            value = statistics.mean([possibility[i]*(i+1) for i in range(243)])
             if best_value > value: best_value = value; guess_word = comp_word
         return guess_word
     
     def _minMax(self):
         best_value = float('inf'); guess_word = ''
-        for comp_word in wordSet:
+        for comp_word in self.possible_set:
             possibility = self._partition(comp_word)
             value = possibility[0]
             if best_value > value: best_value = value; guess_word = comp_word
@@ -252,26 +272,52 @@ class WordleGame():
     
     def _variance(self):
         best_value = float('inf'); guess_word = ''
-        for comp_word in wordSet:
+        for comp_word in self.possible_set:
             possibility = self._partition(comp_word)
             value = statistics.variance(possibility)
             if best_value > value: best_value = value; guess_word = comp_word
         return guess_word
     
+    def _frequency(self):
+        alphabet_counter = {v:[0 for _ in range(_wordLength)] for v in 'abcdefghijklmnopqurstuvwxyz'}
+        for word in self.possible_set:
+            for i, c in enumerate(word):
+                alphabet_counter[c][i] += 1
+        maxScore = float('-inf'); maxWord = ''
+        for word in self.possible_set:
+            curr_score = {}
+            for i, c in enumerate(word):
+                if c not in curr_score:
+                    curr_score[c] = alphabet_counter[c][i] 
+                else:
+                    curr_score[c] = max(curr_score[c], alphabet_counter[c][i])
+            if maxScore < sum(curr_score.values()):
+                maxScore = sum(curr_score.values())
+                maxWord = word
+        return maxWord
+    
+    def _combination(self):
+        best_value = float('inf')
+    
     def converge_possible_set(self, word, result):
         candidate = set()
+        if not self.possible_set: return
         for possible_word in self.possible_set:
-            if compare(possible_word, word) == result: #edit here
+            if compare(word, possible_word) == result:
                 candidate.add(possible_word)
-        self.possible_set = candidate
+        self.possible_set = frozenset(candidate)
 
     def getHistory(self):
         return self.history
-
+"""
 def profile_code():
     test = WordleGame()
     test.initialize()
-    test.game.answer = "actor"
-    print(test._minMax())
+    test.play_with_dictionary()
 
 cProfile.run("profile_code()")
+"""
+
+test = WordleGame()
+test.initialize()
+test.play_with_dictionary()

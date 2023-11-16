@@ -44,7 +44,7 @@ ex. 남은 단어 중에서 D가 포함된 단어는 10개, L이 포함된 단�
 
 5. 가능성이 높은 순이라면 첫 단어가 고정될 것이다.
 
-
+6. 초기 시작 단어는 slate, cares, salet
 
 c) Wordle 최적화
 1. frequency analysis(암호학 terminology)
@@ -58,11 +58,19 @@ c) Wordle 최적화
 
 3. 남아있는 후보들에 대해서 그룹에 대한 scoring
 : 좋은 partition일수록, log scale로 계산할 수 있을듯
+: 초기 단어는 따로 제공하여, possible set을 크기를 많이 제거하고 시작
 
 4. 모음 기반 find -- audio, adieu
 : 모음부터 조사하고 가능한 자음을 나중에 해결
 : 자음만 존재하는 단어 / 비슷한 꼴의 단어
 ex) ?LA?E // 가능한 자음들 조합만 너무 많음
+
+5. j-th character(1<=j<=5)로 가능한 알파벳을 관리
+: 매 query마다 각 자리에 들어갈 수 있는 알파벳을 만족하면서 단어를 select
+: 
+
+6. score 위주로 코딩?
+: 1) Grey는 포함하지 않음 2) B, Y를 포함하면 점수 부여 3) 새로운 정보면 더 높은 점수
 
 > time complexity를 줄이는 idea? 
 확정된 위치를 제외하고, 나머지 부분에 대해서 알파벳별 빈도를 계산해서 접근한다

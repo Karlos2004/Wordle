@@ -4,4 +4,5 @@ wordSet = set()
 f = open("./words.txt", "r")
 for line in f.readlines():
     wordSet.add(line.rstrip())
+wordSet = frozenset(wordSet)
 f.close()
