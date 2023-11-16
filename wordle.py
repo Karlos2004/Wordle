@@ -67,6 +67,16 @@ def compare(comp, crit):
 
 
 def convert_pattern(int_pattern):
+    """
+    3진수 문자열을 패턴으로 변환하는 함수
+        Args:
+            int_pattern: 3진수로 표현된 _wordLength 길이의 문자열(string)
+        
+        Raises:
+
+        Returns:
+            str_pattern: "B", "G", "Y"로 구성된 _wordLength 길이의 문자열(string)
+    """
     digit_dictionary = {"0":"G", "1":"Y", "2":"B"}
     str_pattern = ""
     for digit in int_pattern:
@@ -74,6 +84,16 @@ def convert_pattern(int_pattern):
     return str_pattern
 
 def revert_pattern(str_pattern):
+    """
+    패턴을 10진수로 변환하는 함수
+        Args:
+            str_pattern: "B", "G", "Y"로 구성된 _wordLength 길이의 문자열(string)
+        
+        Raises:
+
+        Returns:
+            int_pattern: 3진수로 대응시킨 10진수(integer)
+    """
     char_dictionary = {"G":"0", "Y":"1", "B":"2"}
     int_pattern = ""
     for char in str_pattern:
@@ -81,6 +101,16 @@ def revert_pattern(str_pattern):
     return ternary_to_decimal(int_pattern)
 
 def decimal_to_ternary(dec_num):
+    """
+    10진수를 3진수로 변환하는 함수
+        Args:
+            dec_num: 10진수(integer)
+        
+        Raises:
+
+        Returns:
+            ter_num.zfill(5): 3진수(string)
+    """
     ter_num = ""
     while dec_num > 0:
         ter_num = str(dec_num % 3) + ter_num
@@ -88,6 +118,16 @@ def decimal_to_ternary(dec_num):
     return ter_num.zfill(5)
 
 def ternary_to_decimal(ter_num):
+    """
+    3진수를 10진수로 변환하는 함수
+        Args:
+            ter_num: 3진수(string)
+        
+        Raises:
+
+        Returns:
+            dec_num: 10진수(integer)
+    """
     dec_num = int(ter_num, 3)
     return dec_num
 
@@ -98,21 +138,13 @@ class Wordle:
 
     Attributes:
         _answer: Wordle에서 사용될 정답 단어(string)
-        _userInput: Wordle에서 사용자가 입력한 단어(string)
+        _userInput: Wordle에서 사용자가 입력한 단어(string), 새로 지정될 때마다 query가 증가
         query: 사용자가 정답을 찾을 때까지 입력한 횟수(integer)
-        _wordLength: 정답 단어 및 입력 단어의 길이(integer)
         
     Methods:
         __str__: 실제 Wordle 사이트에서 정답 공유할 때와 같은 문자열 반환
-        verify: 단어가 Wordle의 조건을 만족하는지 확인
-        setAnswer: 정답 단어를 입력하는 함수
-        getAnswer: 정답 단어를 불러오는 함수
-        compare: 입력 단어와 정답 단어를 비교하여 올바른 형태의 패턴을 출력하는 함수
-        setInput: 입력 단어를 저장하는 함수
-        getInput: 입력 단어를 불러오는 함수
         isEnd: 게임이 종료되었을 때 True를 반환하는 함수
         getQuery: query를 반환
-        convert_to_pattern: compare 함수에서 만든 문자열을 __str__에 저장할 패턴으로 변환하는 함수
     """
     def __init__(self, answer_word=''):
         self.answer = answer_word
@@ -165,19 +197,29 @@ class WordleGame():
 
     Attributes:
         game: Wordle 클래스(class)
+        possible_set: single_game을 실행할 때, 정답단어로 가능한 후보군 단어 모음(frozenset)
         history: query에 따른 answer들의 집합 (플레이 때마다 실행한 횟수들로 정답 단어들을 분류한 defaultdict)
     
     Methods:
         initialize: game을 초기화하는 함수
-        set_answer_randomly: answer를 임의로 정하는 함수
-        set_answer_list: answer_word가 주어졌을 때, answer로 설정하는 함수
-        play_live_randomly: 임의의 정답에 대해서 실시간 플레이할 수 있는 함수
-        play_live_with_list: 단어 리스트 순서대로 입력할 때 플레이 결과를 보여주는 함수
+        play_interactive: 실시간으로 wordle을 플레이할 수 있는 함수
+        play_single_word: answer word와 mode를 지정하여 wordle을 플레이하는 함수
+        play_with_dictionary: mode를 지정하여 사전의 모든 단어에 대해 wordle을 플레이하는 함수
+        play_K_repeated: 사전의 모든 단어에 대해 K번 플레이하는 함수
+        evaluate_mode: guess를 생성할 방법을 반환하는 함수
+        _partition: 주어진 단어에 의해 가능한 패턴의 확률을 반환해주는 함수
+        _average: 파티션한 확률의 평균값(기댓값)으로 단어를 추천하는 함수
+        _minMax: 파티션한 최대 확률의 최솟값으로 단어를 추천하는 함수
+        _variance: 파티션한 확률의 분산이 작은 단어를 추천해주는 함수
+        _frequency: 각 자리별 알파벳의 등장횟수를 scoring하여 단어를 추천하는 함수
+        _combination: 각 자리별 가능한 알파벳을 랜덤하게 골라서 단어를 추천하는 함수
+        converge_possible_set: 정답 단어로 가능한 단어의 모임을 업데이트하는 함수
+
         getHistory: history를 반환하는 함수
     """
     def __init__(self):
-        self.game = Wordle()
-        self.possible_set = set()
+        self.game = None
+        self.possible_set = frozenset()
         self.history = defaultdict(list)
         
     def initialize(self):
@@ -195,12 +237,16 @@ class WordleGame():
         #updates self.history
         return True
     
-    def play_single_word(self, answer_word, command):
+    def play_single_word(self, answer_word, command, first_guess=''):
         assert verify(answer_word)
         self.initialize()
         self.game.answer = answer_word
         while not self.game.isEnd():
-            guess = self.evaluate_mode(command)
+            if first_guess: 
+                guess = first_guess
+                first_guess = ''
+            else:
+                guess = self.evaluate_mode(command)
             self.history[answer_word].append(guess)
             if not verify(guess): return len(wordSet)
             self.game.userInput = guess
@@ -208,13 +254,13 @@ class WordleGame():
             self.converge_possible_set(guess, guessed_result)
         return self.game.getQuery()
     
-    def play_with_dictionary(self, command="letter_frequency"):
+    def play_with_dictionary(self, command="letter_frequency", first_guess=""):
         evaluation_index = [0,0] #(average, worst)
         trial = 1
         time_stamp = []; query_stamp = []
         for word in wordSet:
             start_time = time.time()
-            query = self.play_single_word(word, command)
+            query = self.play_single_word(word, command, first_guess)
             end_time = time.time()
             exec_time = end_time - start_time
             evaluation_index[0] += query
@@ -320,4 +366,4 @@ cProfile.run("profile_code()")
 
 test = WordleGame()
 test.initialize()
-test.play_with_dictionary()
+test.play_with_dictionary(command="partition_minMax", first_guess="salet")
