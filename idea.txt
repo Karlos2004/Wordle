@@ -7,7 +7,7 @@ a) Wordle system 구현
 
 1. 입력 단어의 사전 존재 여부 
 Q. 사전을 어떻게 끌어올 건지? 외부 링크로 접근 or 특정 파일로 접근? 
-A. 일단 5 lettered words list with 5,757 words 기반으로 탐색
+A. ( 주어진 word.txt를 이용하여 파일로 접근 )
 
 2. 정답과의 check
 2-1) 같은 자리, 같은 문자 우선적으로 검토
@@ -87,14 +87,37 @@ iii) p = 0.7일 때, sigma ~ 43,000, 전체 연산량 ~ 7.71e+5 => N번 순회�
 
 5번만에 끝나려면 대략 p = 0.15, 4번안에 끝나려면 p ~ 0.094
 
+
+> letter frequency로 query가 12 이상 필요한 단어들 -- 23개
+대략 2배 정도씩 늘어나는 느낌..
+
 d) 프로젝트 진행 계획
 : 시간 초과가 걸리지 않다는 전제 하에, c-3) idea로 진행
 
-i번째 guess 후의 정답 후보군을 P(i)라고 하면, 구현 때는 set으로, N번 순회해서 check
+    i번째 guess 후의 정답 후보군을 P(i)라고 하면, 구현 때는 set으로, N번 순회해서 check
 
-순회할 때 check해야 할 목록
-1) 등장하는 알파벳들  
-2) 전체 word list에 대해서 등장하는 알파벳
+    순회할 때 check해야 할 목록
+    1) 등장하는 알파벳들  
+    2) 전체 word list에 대해서 등장하는 알파벳
 
-분류방법 : ⓐ 가장 많이 등장하는 패턴의 확률의 min. ⓑ 패턴의 확률에 대한 average ⓒ 패턴의 확률 variance를 기준으로 evaluate
-partition 후에 최선의 선택지가 여러개 있을 때, (나중에 고민)
+    분류방법 : ⓐ 가장 많이 등장하는 패턴의 확률의 min. ⓑ 패턴의 확률에 대한 average ⓒ 패턴의 확률 variance를 기준으로 evaluate
+    partition 후에 최선의 선택지가 여러개 있을 때, (나중에 고민)
+    --> c-3) idea는 시간초과 문제로 기각
+
+    (+) trouble shooting
+    : 첫 단어는 미리 선택해두고, partition을 계산하면 시간초과를 피할 수 있을까?
+    : 2초~3초 동안 해결되는 단어가 꽤 있음
+    : 더 많은 보완이 필요할 것으로 보임
+
+: 다양한 방법의 scoring으로 선회
+
+    (1) distinct, green, yellow, grey에 따라 차등 점수 부여
+    결과는 score_with_distinct_char.png에서 확인 가능
+
+    (2) 가능한 단어목록에 대하여 각 자리별 해당 알파벳의 등장횟수의 합으로 점수 부여
+    결과는 score_with_position.png에서 확인 가능
+
+    (2)-1 한번이라도 Green을 받은 적이 있는 자리는 score에 계산 X
+    결과는 score_with_position_ver.02.png에서 확인 가능
+
+: 자리별로 가능한 알파벳의 목록을 따로 관리
