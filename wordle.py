@@ -221,10 +221,18 @@ class WordleGame():
         self.game = None
         self.possible_set = frozenset()
         self.history = defaultdict(list)
+        self.positions = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(_wordLength)]
+        self.contain_by_pos = [[] for _ in range(_wordLength)]
+        self.banned_by_pos = [[] for _ in range(_wordLength)]
+        self.allowed_times = [[set('abcdefghijklmnopqrstuvwxyz')] for _ in range(4)]
         
     def initialize(self):
         self.game = Wordle()
         self.possible_set = copy.deepcopy(wordSet)
+        self.positions = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(_wordLength)]
+        self.contain_by_pos = [[] for _ in range(_wordLength)]
+        self.banned_by_pos = [[] for _ in range(_wordLength)]
+        self.allowed_times = [[set('abcdefghijklmnopqrstuvwxyz')] for _ in range(4)]
     
     def play_interactive(self):
         self.initialize()
@@ -251,7 +259,7 @@ class WordleGame():
             if not verify(guess): return len(wordSet)
             self.game.userInput = guess
             guessed_result = compare(self.game.userInput, self.game.answer)
-            self.converge_possible_set(guess, guessed_result)
+            self.converge_possible_set(guess, guessed_result, command)
         return self.game.getQuery()
     
     def play_with_dictionary(self, command="letter_frequency", first_guess=""):
@@ -291,6 +299,10 @@ class WordleGame():
             return self._variance()
         if command == "letter_frequency":
             return self._frequency()
+        if command == "position_managing":
+            return self._position_manage()
+        if command == "combination":
+            return self._combination()
         return None
     
     def _partition(self, comp_word):
@@ -343,14 +355,70 @@ class WordleGame():
         return maxWord
     
     def _combination(self):
-        best_value = float('inf')
+        #Please fill in this blank!
+        return None
     
-    def converge_possible_set(self, word, result):
+    def __converge_combination(self, word, result):
+        self.__update_contain_by_pos(word, result)
+        self.__update_banned_by_pos(word, result)
+        self.__update_allowed_times(word, result)
+
+        candidate = set()
+        for possible_answer in self.possible_set:
+            for i in range(_wordLength):
+                if self.contain_by_pos[i] and possible_answer[i] != self.contain_by_pos[i][0]:
+                    break
+                if self.banned_by_pos[i] and possible_answer[i] in self.banned_by_pos[i]:
+                    break
+            else:
+                counter = defaultdict(int)
+                for i in range(_wordLength):
+                    counter[possible_answer[i]] += 1
+                for letter in counter:
+                    if letter not in self.allowed_times[counter[letter]]:
+                        break
+                else:
+                    candidate.add(possible_answer)
+        self.possible_set = frozenset(candidate)
+    
+    def __update_allowed_times(self, word, result):
+        #please fill in this blank!
+        return None
+    
+    def __update_banned_by_pos(self, word, result):
+        #please fill in this blank
+        return None
+    
+    def __update_contain_by_pos(self, word, result):
+        #please fill in this blank
+        return None
+    #not working
+    def _position_manage(self):
+        guess = ['' for _ in range(_wordLength)]
+        while ''.join(guess) not in wordSet:
+            for i in range(_wordLength):
+                guess[i] = random.choice(tuple(self.positions[i]))
+        return ''.join(guess)
+    
+    #not working
+    def __converge_position(self, word, result):
+        for i in range(_wordLength):
+            if result[i] == "B":
+                self.positions[i] = set(word[i])
+            elif result[i] == "Y":
+                self.positions[i].discard(word[i])
+            else:
+                for j in range(_wordLength):
+                    self.positions[j].discard(word[i])
+
+    def converge_possible_set(self, word, result, command):
+        if command == "position_managing":
+            return self.__converge_position(word, result)
         candidate = set()
         if not self.possible_set: return
-        for possible_word in self.possible_set:
-            if compare(word, possible_word) == result:
-                candidate.add(possible_word)
+        for possible_answer in self.possible_set:
+            if compare(word, possible_answer) == result:
+                candidate.add(possible_answer)
         self.possible_set = frozenset(candidate)
 
     def getHistory(self):
@@ -366,4 +434,4 @@ cProfile.run("profile_code()")
 
 test = WordleGame()
 test.initialize()
-test.play_with_dictionary(command="partition_minMax", first_guess="salet")
+test.play_with_dictionary(command="letter_frequency", first_guess="salet")
