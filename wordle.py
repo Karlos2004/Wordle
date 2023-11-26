@@ -4,6 +4,7 @@ from set_word_list import wordSet
 import copy
 import statistics
 import time
+import openpyxl
 
 _wordLength = 5
 
@@ -222,17 +223,17 @@ class WordleGame():
         self.possible_set = frozenset()
         self.history = defaultdict(list)
         self.positions = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(_wordLength)]
-        self.contain_by_pos = [[] for _ in range(_wordLength)]
-        self.banned_by_pos = [[] for _ in range(_wordLength)]
-        self.allowed_times = [[set('abcdefghijklmnopqrstuvwxyz')] for _ in range(4)]
-        
+        self.green_by_pos = [[] for _ in range(_wordLength)]
+        self.grey_by_pos = [[] for _ in range(_wordLength)]
+        self.allowed_times = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(4)]
+
     def initialize(self):
         self.game = Wordle()
         self.possible_set = copy.deepcopy(wordSet)
         self.positions = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(_wordLength)]
-        self.contain_by_pos = [[] for _ in range(_wordLength)]
-        self.banned_by_pos = [[] for _ in range(_wordLength)]
-        self.allowed_times = [[set('abcdefghijklmnopqrstuvwxyz')] for _ in range(4)]
+        self.green_by_pos = [[] for _ in range(_wordLength)]
+        self.grey_by_pos = [[] for _ in range(_wordLength)]
+        self.allowed_times = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(4)]
     
     def play_interactive(self):
         self.initialize()
@@ -273,7 +274,7 @@ class WordleGame():
             exec_time = end_time - start_time
             evaluation_index[0] += query
             evaluation_index[1] = max(query, evaluation_index[1])
-            print(f"{trial}th execution succeed! // time: {round(exec_time, 3)}s // queries: {query} times")
+            print(f"{trial:05}th execution succeed! // time: {round(exec_time, 3):05.3f}s // queries: {query} times")
             time_stamp.append(exec_time); query_stamp.append(query)
             trial += 1
         evaluation_index[0] /= len(wordSet)
@@ -354,44 +355,120 @@ class WordleGame():
                 maxWord = word
         return maxWord
     
-    def _combination(self):
-        #Please fill in this blank!
-        return None
-    
+    @staticmethod
+    def __filter_combination(wordList, green_by_pos, grey_by_pos, allowed_times):
+        candidate = set()
+        for word in wordSet:
+            check = True
+            wordCounter = defaultdict(int)
+            for letter in word:
+                wordCounter[letter] += 1
+            for letter in wordCounter:
+                if letter not in allowed_times[wordCounter[letter]]:
+                    check = False
+            for i in range(_wordLength):
+                if green_by_pos[i] and word[i] != green_by_pos[i]:
+                    check = False
+                    break
+                elif word[i] in grey_by_pos[i]:
+                    check = False
+                    break
+            if check: candidate.add(word)
+        return candidate
+
     def __converge_combination(self, word, result):
-        self.__update_contain_by_pos(word, result)
-        self.__update_banned_by_pos(word, result)
+        self.__update_green_by_pos(word, result)
+        self.__update_grey_by_pos(word, result)
         self.__update_allowed_times(word, result)
+
+        self.possible_set = frozenset(WordleGame.__filter_combination(self.possible_set, self.green_by_pos, self.grey_by_pos, self.allowed_times))
+    
+    def _combination(self):
+        if self.green_by_pos != [[] for _ in range(_wordLength)]:
+            reuse_green_word = self.reuse_green()
+            if reuse_green_word: return reuse_green_word
 
         candidate = set()
         for possible_answer in self.possible_set:
             for i in range(_wordLength):
-                if self.contain_by_pos[i] and possible_answer[i] != self.contain_by_pos[i][0]:
+                if self.green_by_pos[i] and (possible_answer[i] != self.green_by_pos[i][0]):
                     break
-                if self.banned_by_pos[i] and possible_answer[i] in self.banned_by_pos[i]:
+                if self.grey_by_pos[i] and (possible_answer[i] in self.grey_by_pos[i]):
                     break
             else:
-                counter = defaultdict(int)
-                for i in range(_wordLength):
-                    counter[possible_answer[i]] += 1
-                for letter in counter:
-                    if letter not in self.allowed_times[counter[letter]]:
-                        break
-                else:
-                    candidate.add(possible_answer)
-        self.possible_set = frozenset(candidate)
-    
+                candidate.add(possible_answer)
+        return random.choice(list(candidate)) if candidate else None
+
+    def __update_green_by_pos(self, word, result):
+        for i in range(_wordLength):
+            if result[i] == "B":
+                self.green_by_pos[i] = [word[i]]
+
+    def __update_grey_by_pos(self, word, result):
+        for i in range(_wordLength):
+            if result[i] == "Y" and word[i] not in self.grey_by_pos[i]:
+                self.grey_by_pos[i].append(word[i])
+            elif result[i] == "G" and word[i] in word[:i]+word[i+1:]:
+                if word[i] not in self.grey_by_pos[i]:
+                    self.grey_by_pos[i].append(word[i])
+
     def __update_allowed_times(self, word, result):
-        #please fill in this blank!
-        return None
+        letter_result = defaultdict(list)
+        for i, letter in enumerate(word):
+            letter_result[letter].append(result[i])
+
+        for letter, stats in letter_result.items():
+            if 'G' in stats:
+                allowed_count = len(stats) - stats.count('G')
+                for i in range(allowed_count+1, 4):
+                    self.allowed_times[i].discard(letter)
+            elif 'Y' in stats or 'B' in stats:
+                required_count = stats.count('Y') + stats.count('B')
+                for i in range(required_count):
+                    self.allowed_times[i].discard(letter)
+        return
     
-    def __update_banned_by_pos(self, word, result):
-        #please fill in this blank
-        return None
+    def reuse_green(self):
+        vowels = {'a', 'e', 'i', 'o', 'u'}
+        def get_maximized_word(words, priority_letters):
+            max_score = float('-inf')
+            max_word = ''
+
+            for word in words:
+                curr_score = 0
+                for letter in word:
+                    if letter in priority_letters:
+                        curr_score += 1
+                if max_score < curr_score:
+                    max_score = curr_score
+                    max_word = word
+            return max_word
+        
+        def count_vowels(letters):
+            cnt = 0
+            for letter in letters:
+                if letter in vowels:
+                    cnt += 1
+            return cnt
+        
+        greens_n_yellows = set(letter for letters in self.green_by_pos + self.grey_by_pos for letter in letters)
+        priority_letters = self.allowed_times[1] - greens_n_yellows
+        letters_for_allowed_times = priority_letters.union(vowels) if count_vowels(priority_letters) == 0 else priority_letters
+        
+        temp_allowed_times = [set('abcdefghijklmnopqrstuvwxyz')] + [letters_for_allowed_times for _ in range(3)]
+        temp_green_by_pos = [[] for _ in range(_wordLength)]
+        temp_grey_by_pos = self.green_by_pos
+
+        temp_words = WordleGame.__filter_combination(wordSet, temp_green_by_pos, temp_grey_by_pos, temp_allowed_times)
+
+        if temp_words:
+            return get_maximized_word(temp_words, list(priority_letters))
+
+        return ""
     
-    def __update_contain_by_pos(self, word, result):
-        #please fill in this blank
-        return None
+                
+
+
     #not working
     def _position_manage(self):
         guess = ['' for _ in range(_wordLength)]
@@ -414,6 +491,8 @@ class WordleGame():
     def converge_possible_set(self, word, result, command):
         if command == "position_managing":
             return self.__converge_position(word, result)
+        if command == "combination":
+            return self.__converge_combination(word, result)
         candidate = set()
         if not self.possible_set: return
         for possible_answer in self.possible_set:
@@ -423,6 +502,18 @@ class WordleGame():
 
     def getHistory(self):
         return self.history
+    
+    def save_history_into_Excel(self):
+        modes = 'final'
+        file_path = './history.xlsx'
+        write_wb = openpyxl.load_workbook(file_path)
+        write_ws = write_wb.create_sheet(title=modes)
+        write_ws.append(['answer', 'query','guessed_list'])
+        for answer_word in self.history:
+            datas = [answer_word, len(self.history[answer_word])] + self.history[answer_word]
+            write_ws.append(datas)
+        write_wb.save(file_path)
+
 """
 def profile_code():
     test = WordleGame()
@@ -434,4 +525,5 @@ cProfile.run("profile_code()")
 
 test = WordleGame()
 test.initialize()
-test.play_with_dictionary(command="letter_frequency", first_guess="salet")
+test.play_with_dictionary(command="combination", first_guess="salet")
+test.save_history_into_Excel()
