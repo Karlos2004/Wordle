@@ -190,7 +190,7 @@ class Wordle:
     def getQuery(self):
         return self.query
 
-class WordleGame():
+class WordleGame:
     """
     다양한 환경에서 Wordle을 플레이할 수 있다.
     여러 번 반복하여 플레이한 통계를 알려준다.
@@ -358,7 +358,7 @@ class WordleGame():
     @staticmethod
     def __filter_combination(wordList, green_by_pos, grey_by_pos, allowed_times):
         candidate = set()
-        for word in wordSet:
+        for word in wordList:
             check = True
             wordCounter = defaultdict(int)
             for letter in word:
@@ -367,13 +367,14 @@ class WordleGame():
                 if letter not in allowed_times[wordCounter[letter]]:
                     check = False
             for i in range(_wordLength):
-                if green_by_pos[i] and word[i] != green_by_pos[i]:
+                if green_by_pos[i] and word[i] not in green_by_pos[i]:
                     check = False
                     break
                 elif word[i] in grey_by_pos[i]:
                     check = False
                     break
-            if check: candidate.add(word)
+            if check: 
+                candidate.add(word)
         return candidate
 
     def __converge_combination(self, word, result):
@@ -381,23 +382,15 @@ class WordleGame():
         self.__update_grey_by_pos(word, result)
         self.__update_allowed_times(word, result)
 
-        self.possible_set = frozenset(WordleGame.__filter_combination(self.possible_set, self.green_by_pos, self.grey_by_pos, self.allowed_times))
-    
+        self.possible_set = WordleGame.__filter_combination(self.possible_set, self.green_by_pos, self.grey_by_pos, self.allowed_times)
+
     def _combination(self):
+
         if self.green_by_pos != [[] for _ in range(_wordLength)]:
             reuse_green_word = self.reuse_green()
             if reuse_green_word: return reuse_green_word
 
-        candidate = set()
-        for possible_answer in self.possible_set:
-            for i in range(_wordLength):
-                if self.green_by_pos[i] and (possible_answer[i] != self.green_by_pos[i][0]):
-                    break
-                if self.grey_by_pos[i] and (possible_answer[i] in self.grey_by_pos[i]):
-                    break
-            else:
-                candidate.add(possible_answer)
-        return random.choice(list(candidate)) if candidate else None
+        return random.choice(list(self.possible_set)) if self.possible_set else ''
 
     def __update_green_by_pos(self, word, result):
         for i in range(_wordLength):
@@ -408,7 +401,7 @@ class WordleGame():
         for i in range(_wordLength):
             if result[i] == "Y" and word[i] not in self.grey_by_pos[i]:
                 self.grey_by_pos[i].append(word[i])
-            elif result[i] == "G" and word[i] in word[:i]+word[i+1:]:
+            elif result[i] == "G":
                 if word[i] not in self.grey_by_pos[i]:
                     self.grey_by_pos[i].append(word[i])
 
@@ -431,7 +424,7 @@ class WordleGame():
     def reuse_green(self):
         vowels = {'a', 'e', 'i', 'o', 'u'}
         def get_maximized_word(words, priority_letters):
-            max_score = float('-inf')
+            max_score = 4
             max_word = ''
 
             for word in words:
@@ -462,12 +455,9 @@ class WordleGame():
         temp_words = WordleGame.__filter_combination(wordSet, temp_green_by_pos, temp_grey_by_pos, temp_allowed_times)
 
         if temp_words:
-            return get_maximized_word(temp_words, list(priority_letters))
+            return get_maximized_word(temp_words, priority_letters)
 
         return ""
-    
-                
-
 
     #not working
     def _position_manage(self):
@@ -525,5 +515,5 @@ cProfile.run("profile_code()")
 
 test = WordleGame()
 test.initialize()
-test.play_with_dictionary(command="combination", first_guess="salet")
+test.play_with_dictionary(command="letter_frequency", first_guess="salet")
 test.save_history_into_Excel()
