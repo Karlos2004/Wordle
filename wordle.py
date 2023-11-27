@@ -226,6 +226,7 @@ class WordleGame:
         self.green_by_pos = [[] for _ in range(_wordLength)]
         self.grey_by_pos = [[] for _ in range(_wordLength)]
         self.allowed_times = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(4)]
+        self.four_green = False
 
     def initialize(self):
         self.game = Wordle()
@@ -246,24 +247,24 @@ class WordleGame:
         #updates self.history
         return True
     
-    def play_single_word(self, answer_word, command, first_guess=''):
+    def play_single_word(self, answer_word, command, first_guess=[]):
         assert verify(answer_word)
         self.initialize()
         self.game.answer = answer_word
         while not self.game.isEnd():
             if first_guess: 
-                guess = first_guess
-                first_guess = ''
+                guess = first_guess.pop()
             else:
                 guess = self.evaluate_mode(command)
             self.history[answer_word].append(guess)
             if not verify(guess): return len(wordSet)
             self.game.userInput = guess
             guessed_result = compare(self.game.userInput, self.game.answer)
+            if guessed_result.count('B') == 4 and len(self.possible_set) > 3: self.four_green = True
             self.converge_possible_set(guess, guessed_result, command)
         return self.game.getQuery()
     
-    def play_with_dictionary(self, command="letter_frequency", first_guess=""):
+    def play_with_dictionary(self, command="letter_frequency", first_guess=[]):
         evaluation_index = [0,0] #(average, worst)
         trial = 1
         time_stamp = []; query_stamp = []
@@ -292,6 +293,7 @@ class WordleGame:
         return X
     
     def evaluate_mode(self, command=None):
+        if self.four_green: return self._four_greens()
         if command == "partition_minMax":
             return self._minMax()
         if command == "partition_average":
@@ -354,6 +356,40 @@ class WordleGame:
                 maxScore = sum(curr_score.values())
                 maxWord = word
         return maxWord
+    
+    def _four_greens(self):
+        self.four_green = False
+        prev = ''; idx = 0
+        for word in self.possible_set:
+            if not prev: 
+                prev = word
+            elif prev:
+                for i in range(5):
+                    if prev[i] != word[i]:
+                        idx = i
+                        break
+                else:
+                    break
+        
+        priority_letters = set()
+        for word in self.possible_set:
+            priority_letters.add(word[idx])
+
+        max_score = 0
+        max_word = ''
+
+        for word in wordSet:
+            curr_score = 0
+            used_letter = set()
+            for letter in word:
+                if letter in used_letter: continue
+                used_letter.add(letter)
+                if letter in priority_letters:
+                    curr_score += 1
+            if max_score < curr_score:
+                max_score = curr_score
+                max_word = word
+        return max_word
     
     @staticmethod
     def __filter_combination(wordList, green_by_pos, grey_by_pos, allowed_times):
@@ -494,7 +530,7 @@ class WordleGame:
         return self.history
     
     def save_history_into_Excel(self):
-        modes = 'final'
+        modes = 'four_greens_at_least_4_updated(trace)'
         file_path = './history.xlsx'
         write_wb = openpyxl.load_workbook(file_path)
         write_ws = write_wb.create_sheet(title=modes)
@@ -515,5 +551,5 @@ cProfile.run("profile_code()")
 
 test = WordleGame()
 test.initialize()
-test.play_with_dictionary(command="letter_frequency", first_guess="salet")
+test.play_with_dictionary(command="letter_frequency", first_guess=["trace"])
 test.save_history_into_Excel()
