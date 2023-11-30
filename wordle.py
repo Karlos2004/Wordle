@@ -236,24 +236,37 @@ class WordleGame:
         self.grey_by_pos = [[] for _ in range(_wordLength)]
         self.allowed_times = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(4)]
     
-    def play_interactive(self):
+    def play_interactive(self, answer_word):
+        assert verify(answer_word)
         self.initialize()
-        self.set_answer_randomly()
+        self.game.answer = answer_word
         while not self.game.isEnd():
-            input_live = input("Guess 5 letter word: ")
-            if not self.game.verify(input_live): continue
-            #write more codes!
-            #compare those words
-        #updates self.history
-        return True
+            guess = input("guess here: ")
+            while not verify(guess):
+                guess = input("guess here: ")
+            self.history[answer_word].append(guess)
+            self.game.userInput = guess
+            guessed_result = compare(self.game.userInput, self.game.answer)
+            print(guessed_result)
+            self.converge_possible_set(guess, guessed_result)
+            if len(self.possible_set) < 20:
+                print(self.possible_set)
+        return self.game.getQuery()
     
-    def play_single_word(self, answer_word, command, first_guess=[]):
+    def play_single_word(self, answer_word, command, first_guess='', second_guess='', third_guess=''):
         assert verify(answer_word)
         self.initialize()
         self.game.answer = answer_word
         while not self.game.isEnd():
             if first_guess: 
-                guess = first_guess.pop()
+                guess = first_guess
+                first_guess = ''
+            elif second_guess:
+                guess = second_guess
+                second_guess = ''
+            elif third_guess:
+                guess = third_guess
+                third_guess = ''
             else:
                 guess = self.evaluate_mode(command)
             self.history[answer_word].append(guess)
@@ -262,15 +275,16 @@ class WordleGame:
             guessed_result = compare(self.game.userInput, self.game.answer)
             if guessed_result.count('B') == 4 and len(self.possible_set) > 3: self.four_green = True
             self.converge_possible_set(guess, guessed_result, command)
+            print(guess, guessed_result, self.four_green)
         return self.game.getQuery()
     
-    def play_with_dictionary(self, command="letter_frequency", first_guess=[]):
+    def play_with_dictionary(self, command="letter_frequency", first_guess='', second_guess='', third_guess=''):
         evaluation_index = [0,0] #(average, worst)
         trial = 1
         time_stamp = []; query_stamp = []
         for word in wordSet:
             start_time = time.time()
-            query = self.play_single_word(word, command, first_guess)
+            query = self.play_single_word(word, command, first_guess, second_guess, third_guess)
             end_time = time.time()
             exec_time = end_time - start_time
             evaluation_index[0] += query
@@ -368,12 +382,14 @@ class WordleGame:
                     if prev[i] != word[i]:
                         idx = i
                         break
-                else:
-                    break
+                break
         
         priority_letters = set()
         for word in self.possible_set:
             priority_letters.add(word[idx])
+        for i in range(_wordLength):
+            if i == idx: continue
+            priority_letters.discard(word[i])
 
         max_score = 0
         max_word = ''
@@ -514,7 +530,7 @@ class WordleGame:
                 for j in range(_wordLength):
                     self.positions[j].discard(word[i])
 
-    def converge_possible_set(self, word, result, command):
+    def converge_possible_set(self, word, result, command=""):
         if command == "position_managing":
             return self.__converge_position(word, result)
         if command == "combination":
@@ -530,7 +546,7 @@ class WordleGame:
         return self.history
     
     def save_history_into_Excel(self):
-        modes = 'four_greens_at_least_4_updated(trace)'
+        modes = 'four_greens_4_updated'
         file_path = './history.xlsx'
         write_wb = openpyxl.load_workbook(file_path)
         write_ws = write_wb.create_sheet(title=modes)
@@ -551,5 +567,8 @@ cProfile.run("profile_code()")
 
 test = WordleGame()
 test.initialize()
-test.play_with_dictionary(command="letter_frequency", first_guess=["trace"])
+test.play_with_dictionary(command="letter_frequency", first_guess="stare", second_guess="doing", third_guess="lucky")
 test.save_history_into_Excel()
+
+#print(test.play_interactive("cacks"))
+#print(test.play_single_word("cacks", "letter_frequency", "stare", "doing", "lucky"))
