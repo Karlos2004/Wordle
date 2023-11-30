@@ -275,7 +275,6 @@ class WordleGame:
             guessed_result = compare(self.game.userInput, self.game.answer)
             if guessed_result.count('B') == 4 and len(self.possible_set) > 3: self.four_green = True
             self.converge_possible_set(guess, guessed_result, command)
-            print(guess, guessed_result, self.four_green)
         return self.game.getQuery()
     
     def play_with_dictionary(self, command="letter_frequency", first_guess='', second_guess='', third_guess=''):
@@ -387,9 +386,6 @@ class WordleGame:
         priority_letters = set()
         for word in self.possible_set:
             priority_letters.add(word[idx])
-        for i in range(_wordLength):
-            if i == idx: continue
-            priority_letters.discard(word[i])
 
         max_score = 0
         max_word = ''
@@ -569,6 +565,3 @@ test = WordleGame()
 test.initialize()
 test.play_with_dictionary(command="letter_frequency", first_guess="stare", second_guess="doing", third_guess="lucky")
 test.save_history_into_Excel()
-
-#print(test.play_interactive("cacks"))
-#print(test.play_single_word("cacks", "letter_frequency", "stare", "doing", "lucky"))
