@@ -157,8 +157,10 @@ class WordleSolver:
         if self.wordList:
             self.word = self.wordList.pop()
             return self.word
-        if self.four_green: self._four_greens()
-        self.word = self.frequency()
+        if self.four_green: 
+            self.word = self._four_greens()
+        else:
+            self.word = self.frequency()
         return self.word
     
     def frequency(self):
