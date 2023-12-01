@@ -220,7 +220,7 @@ class WordleGame:
     """
     def __init__(self):
         self.game = None
-        self.possible_set = frozenset()
+        self.possible_set = tuple()
         self.history = defaultdict(list)
         self.positions = [set('abcdefghijklmnopqrstuvwxyz') for _ in range(_wordLength)]
         self.green_by_pos = [[] for _ in range(_wordLength)]
@@ -531,18 +531,18 @@ class WordleGame:
             return self.__converge_position(word, result)
         if command == "combination":
             return self.__converge_combination(word, result)
-        candidate = set()
+        candidate = []
         if not self.possible_set: return
         for possible_answer in self.possible_set:
             if compare(word, possible_answer) == result:
-                candidate.add(possible_answer)
-        self.possible_set = frozenset(candidate)
+                candidate.append(possible_answer)
+        self.possible_set = tuple(candidate)
 
     def getHistory(self):
         return self.history
     
     def save_history_into_Excel(self):
-        modes = 'four_greens_4_updated'
+        modes = 'ordered_four_greens'
         file_path = './history.xlsx'
         write_wb = openpyxl.load_workbook(file_path)
         write_ws = write_wb.create_sheet(title=modes)
